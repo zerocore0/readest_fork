@@ -23,7 +23,7 @@ import { isValidURL } from '@/utils/misc';
 import { BaseAppService } from './appService';
 import { LOCAL_BOOKS_SUBDIR } from './constants';
 
-const OS_TYPE = osType();
+const OS_TYPE = osType() || 'unknown';
 
 const resolvePath = (fp: string, base: BaseDir): { baseDir: number; base: BaseDir; fp: string } => {
   switch (base) {
