@@ -10,6 +10,11 @@ interface Token {
   [key: string]: string | number;
 }
 
+export const getUserPlan = (token: string): UserPlan => {
+  const data = jwtDecode<Token>(token) || {};
+  return data['plan'] || 'free';
+};
+
 export const getStoragePlanData = (token: string) => {
   const data = jwtDecode<Token>(token) || {};
   const plan = data['plan'] || 'free';

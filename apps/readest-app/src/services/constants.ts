@@ -3,6 +3,7 @@ import {
   BookLayout,
   BookSearchConfig,
   BookStyle,
+  HighlightColor,
   TTSConfig,
   ViewConfig,
   ViewSettings,
@@ -22,6 +23,7 @@ export const DEFAULT_SYSTEM_SETTINGS: Partial<SystemSettings> = {
   keepLogin: false,
   autoUpload: true,
   autoCheckUpdates: true,
+  screenWakeLock: true,
 
   lastSyncedAtBooks: 0,
   lastSyncedAtConfigs: 0,
@@ -85,6 +87,7 @@ export const DEFAULT_BOOK_STYLE: BookStyle = {
 
 export const DEFAULT_MOBILE_VIEW_SETTINGS: Partial<ViewSettings> = {
   fullJustification: false,
+  animated: true,
 };
 
 export const DEFAULT_CJK_VIEW_SETTINGS: Partial<ViewSettings> = {
@@ -404,3 +407,11 @@ export const DEFAULT_STORAGE_QUOTA: UserStorageQuota = {
 export const DOUBLE_CLICK_INTERVAL_THRESHOLD_MS = 250;
 export const DISABLE_DOUBLE_CLICK_ON_MOBILE = true;
 export const LONG_HOLD_THRESHOLD = 500;
+
+export const HIGHLIGHT_COLOR_HEX: Record<HighlightColor, string> = {
+  red: '#f87171', // red-400
+  yellow: '#facc15', // yellow-400
+  green: '#4ade80', // green-400
+  blue: '#60a5fa', // blue-400
+  violet: '#a78bfa', // violet-400
+};

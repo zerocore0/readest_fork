@@ -16,6 +16,7 @@ import { parseOpenWithFiles } from '@/helpers/cli';
 import { isTauriAppPlatform, hasUpdater } from '@/services/environment';
 import { checkForAppUpdates } from '@/helpers/updater';
 import { FILE_ACCEPT_FORMATS, SUPPORTED_FILE_EXTS } from '@/services/constants';
+import { impactFeedback } from '@tauri-apps/plugin-haptics';
 
 import { useEnv } from '@/context/EnvContext';
 import { useAuth } from '@/context/AuthContext';
@@ -26,6 +27,8 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useDemoBooks } from './hooks/useDemoBooks';
 import { useBooksSync } from './hooks/useBooksSync';
+import { useScreenWakeLock } from '@/hooks/useScreenWakeLock';
+import { tauriQuitApp } from '@/utils/window';
 
 import { AboutWindow } from '@/components/AboutWindow';
 import { Toast } from '@/components/Toast';
@@ -33,6 +36,7 @@ import Spinner from '@/components/Spinner';
 import LibraryHeader from './components/LibraryHeader';
 import Bookshelf from './components/Bookshelf';
 import BookDetailModal from '@/components/BookDetailModal';
+import useShortcuts from '@/hooks/useShortcuts';
 
 const LibraryPage = () => {
   const router = useRouter();
@@ -65,6 +69,15 @@ const LibraryPage = () => {
   });
 
   usePullToRefresh(containerRef, pullLibrary);
+  useScreenWakeLock(settings.screenWakeLock);
+
+  useShortcuts({
+    onQuitApp: async () => {
+      if (isTauriAppPlatform()) {
+        await tauriQuitApp();
+      }
+    },
+  });
 
   useEffect(() => {
     updateAppTheme('base-200');
@@ -251,7 +264,7 @@ const LibraryPage = () => {
       });
     } catch (err) {
       if (err instanceof Error) {
-        if (err.message.includes('Not authenticated')) {
+        if (err.message.includes('Not authenticated') && settings.keepLogin) {
           navigateToLogin(router);
           return;
         } else if (err.message.includes('Insufficient storage quota')) {
@@ -321,8 +334,7 @@ const LibraryPage = () => {
     let files;
 
     if (isTauriAppPlatform()) {
-      const { type } = await import('@tauri-apps/plugin-os');
-      if (['android', 'ios'].includes(type())) {
+      if (appService?.isMobile) {
         files = (await selectFilesWeb()) as [File];
       } else {
         files = (await selectFilesTauri()) as [string];
@@ -334,10 +346,16 @@ const LibraryPage = () => {
   };
 
   const handleToggleSelectMode = () => {
-    setIsSelectMode(!isSelectMode);
+    if (!isSelectMode && appService?.hasHaptics) {
+      impactFeedback('medium');
+    }
+    setIsSelectMode((pre) => !pre);
   };
 
   const handleSetSelectMode = (selectMode: boolean) => {
+    if (selectMode && appService?.hasHaptics) {
+      impactFeedback('medium');
+    }
     setIsSelectMode(selectMode);
   };
 
@@ -380,12 +398,13 @@ const LibraryPage = () => {
         </div>
       )}
       {libraryLoaded &&
-        (libraryBooks.length > 0 ? (
+        (libraryBooks.some((book) => !book.deletedAt) ? (
           <div
             ref={containerRef}
             className={clsx(
-              'mt-12 flex-grow overflow-auto px-4 sm:px-2',
+              'scroll-container mt-12 flex-grow overflow-auto px-4 sm:px-2',
               appService?.hasSafeAreaInset && 'mt-[calc(48px+env(safe-area-inset-top))]',
+              appService?.hasSafeAreaInset && 'pb-[calc(env(safe-area-inset-bottom))]',
             )}
           >
             <Bookshelf

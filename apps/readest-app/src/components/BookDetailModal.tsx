@@ -82,8 +82,8 @@ const BookDetailModal = ({ book, isOpen, onClose }: BookDetailModalProps) => {
         title={_('Book Details')}
         isOpen={isOpen}
         onClose={handleClose}
-        className='!bg-[rgba(0,0,0,0.5)]'
-        boxClassName='sm:min-w-[480px]'
+        bgClassName='sm:bg-black/50'
+        boxClassName='sm:min-w-[480px] sm:h-auto'
         contentClassName='!px-6 !py-2'
       >
         <div className='flex w-full select-text items-center justify-center'>
@@ -196,14 +196,21 @@ const BookDetailModal = ({ book, isOpen, onClose }: BookDetailModalProps) => {
         </div>
       </Dialog>
       {showDeleteAlert && (
-        <Alert
-          title={_('Confirm Deletion')}
-          message={_('Are you sure to delete the selected books?')}
-          onCancel={() => {
-            setShowDeleteAlert(false);
-          }}
-          onConfirm={confirmDelete}
-        />
+        <div
+          className={clsx(
+            'fixed bottom-0 left-0 right-0 z-50 flex justify-center',
+            'pb-[calc(env(safe-area-inset-bottom)+16px)]',
+          )}
+        >
+          <Alert
+            title={_('Confirm Deletion')}
+            message={_('Are you sure to delete the selected books?')}
+            onCancel={() => {
+              setShowDeleteAlert(false);
+            }}
+            onConfirm={confirmDelete}
+          />
+        </div>
       )}
     </div>
   );

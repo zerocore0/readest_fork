@@ -1,5 +1,30 @@
 {
   "releases": {
+    "0.9.17": {
+      "date": "2025-02-24",
+      "notes": [
+        "Add Arabic localization",
+        "Add Dockerfile to selfhost",
+        "Add safari-auth plugin for iOS OAuth",
+        "UX enhancements for mobile platforms with haptics feedback and pull-down dismissal"
+      ]
+    },
+    "0.9.15": {
+      "date": "2025-02-21",
+      "notes": [
+        "Fix hardcoded font color from calibre",
+        "Fix scroll to current TOC item when toggling sidebar",
+        "Various fixes and enhancements on iOS platform"
+      ]
+    },
+    "0.9.13": {
+      "date": "2025-02-19",
+      "notes": [
+        "Add option to keep screen awake when reading",
+        "Add shortcuts to notetaking UI",
+        "UX enhancements of grid view in mobile platforms"
+      ]
+    },
     "0.9.11": {
       "date": "2025-02-14",
       "notes": [

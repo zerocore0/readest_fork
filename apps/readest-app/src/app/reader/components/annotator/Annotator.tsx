@@ -24,6 +24,7 @@ import { useFoliateEvents } from '../../hooks/useFoliateEvents';
 import { useNotesSync } from '../../hooks/useNotesSync';
 import { getPopupPosition, getPosition, Position, TextSelection } from '@/utils/sel';
 import { eventDispatcher } from '@/utils/event';
+import { HIGHLIGHT_COLOR_HEX } from '@/services/constants';
 import AnnotationPopup from './AnnotationPopup';
 import WiktionaryPopup from './WiktionaryPopup';
 import WikipediaPopup from './WikipediaPopup';
@@ -31,7 +32,7 @@ import DeepLPopup from './DeepLPopup';
 
 const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
   const _ = useTranslation();
-  const { envConfig } = useEnv();
+  const { envConfig, appService } = useEnv();
   const { settings } = useSettingsStore();
   const { getConfig, saveConfig, getBookData, updateBooknotes } = useBookDataStore();
   const { getProgress, getView, getViewsById, getViewSettings } = useReaderStore();
@@ -95,11 +96,26 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
       }
       setSelection({ key: bookKey, text: sel.toString(), range, index });
     };
+    // FIXME: extremely hacky way to dismiss system selection tools on iOS
+    const makeSelectionOnIOS = (sel: Selection) => {
+      isTextSelected.current = true;
+      const range = sel.getRangeAt(0);
+      setTimeout(() => {
+        sel.removeAllRanges();
+        setTimeout(() => {
+          if (!isTextSelected.current) return;
+          sel.addRange(range);
+          setSelection({ key: bookKey, text: range.toString(), range, index });
+        }, 40);
+      }, 0);
+    };
     const handleSelectionchange = () => {
       // Available on iOS, Android and Desktop, fired when the selection is changed
       // Ideally the popup only shows when the selection is done,
       // but on Android no proper events are fired to notify selection done or I didn't find it,
       // we make the popup show when the selection is changed
+      if (osPlatform === 'ios' || appService?.isIOSApp) return;
+
       const sel = doc.getSelection();
       if (isValidSelection(sel)) {
         if (osPlatform === 'android' && isTouchstarted.current) {
@@ -118,7 +134,11 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
       // Note that on Android, pointerup event is fired after an additional touch event
       const sel = doc.getSelection();
       if (isValidSelection(sel)) {
-        makeSelection(sel, true);
+        if (osPlatform === 'ios' || appService?.isIOSApp) {
+          makeSelectionOnIOS(sel);
+        } else {
+          makeSelection(sel, true);
+        }
       }
     };
     const handleTouchstart = () => {
@@ -143,7 +163,7 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
 
       // Disable the default context menu on mobile devices,
       // although it should but doesn't work on iOS
-      if (osPlatform === 'android' || osPlatform === 'ios') {
+      if (appService?.isMobile) {
         detail.doc?.addEventListener('contextmenu', (event: Event) => {
           event.preventDefault();
           event.stopPropagation();
@@ -157,14 +177,15 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
     const detail = (event as CustomEvent).detail;
     const { draw, annotation, doc, range } = detail;
     const { style, color } = annotation as BookNote;
+    const hexColor = color ? HIGHLIGHT_COLOR_HEX[color] : color;
     if (style === 'highlight') {
-      draw(Overlayer.highlight, { color });
+      draw(Overlayer.highlight, { color: hexColor });
     } else if (['underline', 'squiggly'].includes(style as string)) {
       const { defaultView } = doc;
       const node = range.startContainer;
       const el = node.nodeType === 1 ? node : node.parentElement;
       const { writingMode } = defaultView.getComputedStyle(el);
-      draw(Overlayer[style as keyof typeof Overlayer], { writingMode, color });
+      draw(Overlayer[style as keyof typeof Overlayer], { writingMode, color: hexColor });
     }
   };
 
@@ -231,7 +252,7 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
       const gridFrame = document.querySelector(`#gridcell-${bookKey}`);
       if (!gridFrame) return;
       const rect = gridFrame.getBoundingClientRect();
-      const triangPos = getPosition(selection.range, rect, viewSettings.vertical);
+      const triangPos = getPosition(selection.range, rect, popupPadding, viewSettings.vertical);
       const annotPopupPos = getPopupPosition(
         triangPos,
         rect,
@@ -357,6 +378,7 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
     if (existingIndex !== -1) {
       views.forEach((view) => view?.addAnnotation(annotation, true));
       if (update) {
+        annotation.id = annotations[existingIndex]!.id;
         annotations[existingIndex] = annotation;
         views.forEach((view) => view?.addAnnotation(annotation));
       } else {

@@ -7,14 +7,14 @@ use tauri::{
 }; // 0.8
 
 const WINDOW_CONTROL_PAD_X: f64 = 10.0;
-const WINDOW_CONTROL_PAD_Y: f64 = 20.0;
+const WINDOW_CONTROL_PAD_Y: f64 = 22.0;
 
 struct UnsafeWindowHandle(*mut std::ffi::c_void);
 unsafe impl Send for UnsafeWindowHandle {}
 unsafe impl Sync for UnsafeWindowHandle {}
 
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
-    Builder::new("traffic_light_positioner")
+    Builder::new("traffic_light")
         .on_window_ready(|window| {
             #[cfg(target_os = "macos")]
             setup_traffic_light_positioner(window.clone());

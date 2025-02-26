@@ -1,16 +1,17 @@
 import { useEffect } from 'react';
 import { FoliateView } from '@/types/view';
+import { useEnv } from '@/context/EnvContext';
 import { useReaderStore } from '@/store/readerStore';
 import { eventDispatcher } from '@/utils/event';
 import { isTauriAppPlatform } from '@/services/environment';
 import { tauriGetWindowLogicalPosition } from '@/utils/window';
-import { getOSPlatform } from '@/utils/misc';
 
 export const useClickEvent = (
   bookKey: string,
   viewRef: React.MutableRefObject<FoliateView | null>,
   containerRef: React.RefObject<HTMLDivElement>,
 ) => {
+  const { appService } = useEnv();
   const { getViewSettings } = useReaderStore();
   const { hoveredBookKey, setHoveredBookKey } = useReaderStore();
   const handleTurnPage = async (
@@ -27,7 +28,7 @@ export const useClickEvent = (
             let windowStartX;
             // Currently for tauri APP the window.screenX is always 0
             if (isTauriAppPlatform()) {
-              if (['android', 'ios'].includes(getOSPlatform())) {
+              if (appService?.isMobile) {
                 windowStartX = 0;
               } else {
                 const windowPosition = await tauriGetWindowLogicalPosition();
@@ -45,10 +46,15 @@ export const useClickEvent = (
               if (screenX >= centerStartX && screenX <= centerEndX) {
                 // toggle visibility of the header bar and the footer bar
                 setHoveredBookKey(hoveredBookKey ? null : bookKey);
-              } else if (!viewSettings.disableClick! && screenX >= viewCenterX) {
-                viewRef.current?.goRight();
-              } else if (!viewSettings.disableClick! && screenX < viewCenterX) {
-                viewRef.current?.goLeft();
+              } else {
+                if (hoveredBookKey) {
+                  setHoveredBookKey(null);
+                }
+                if (!viewSettings.disableClick! && screenX >= viewCenterX) {
+                  viewRef.current?.goRight();
+                } else if (!viewSettings.disableClick! && screenX < viewCenterX) {
+                  viewRef.current?.goLeft();
+                }
               }
             }
           }
@@ -127,6 +133,13 @@ export const useTouchEvent = (
     if (touch) {
       touchEnd = touch;
     }
+    if (hoveredBookKey && touchEnd) {
+      const deltaY = touchEnd.screenY - touchStart.screenY;
+      const deltaX = touchEnd.screenX - touchStart.screenX;
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+        setHoveredBookKey(null);
+      }
+    }
   };
 
   const onTouchEnd = (e: IframeTouchEvent) => {
@@ -149,6 +162,10 @@ export const useTouchEvent = (
       ) {
         // swipe up to toggle the header bar and the footer bar
         setHoveredBookKey(hoveredBookKey ? null : bookKey);
+      } else {
+        if (hoveredBookKey) {
+          setHoveredBookKey(null);
+        }
       }
     }
 

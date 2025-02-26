@@ -2,7 +2,11 @@ import clsx from 'clsx';
 import React, { ReactNode, useEffect } from 'react';
 import { MdArrowBackIosNew } from 'react-icons/md';
 import { useEnv } from '@/context/EnvContext';
+import { useDrag } from '@/hooks/useDrag';
 import { useResponsiveSize } from '@/hooks/useResponsiveSize';
+import { impactFeedback } from '@tauri-apps/plugin-haptics';
+
+const VELOCITY_THRESHOLD = 0.5;
 
 interface DialogProps {
   id?: string;
@@ -11,6 +15,7 @@ interface DialogProps {
   header?: ReactNode;
   title?: string;
   className?: string;
+  bgClassName?: string;
   boxClassName?: string;
   contentClassName?: string;
   onClose: () => void;
@@ -23,12 +28,15 @@ const Dialog: React.FC<DialogProps> = ({
   header,
   title,
   className,
+  bgClassName,
   boxClassName,
   contentClassName,
   onClose,
 }) => {
   const { appService } = useEnv();
   const iconSize22 = useResponsiveSize(22);
+  const isMobile = window.innerWidth < 640;
+
   const handleKeyDown = (event: KeyboardEvent) => {
     if (event.key === 'Escape') {
       onClose();
@@ -43,23 +51,79 @@ const Dialog: React.FC<DialogProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const handleDragMove = (data: { clientY: number; deltaY: number }) => {
+    if (!isMobile) return;
+
+    const modal = document.querySelector('.modal-box') as HTMLElement;
+    const overlay = document.querySelector('.overlay') as HTMLElement;
+
+    const heightFraction = data.clientY / window.innerHeight;
+    const newTop = Math.max(0.0, Math.min(1, heightFraction));
+
+    if (modal && overlay) {
+      modal.style.transition = '';
+      modal.style.transform = `translateY(${newTop * 100}%)`;
+      overlay.style.opacity = `${1 - heightFraction}`;
+    }
+  };
+
+  const handleDragEnd = (data: { velocity: number; clientY: number }) => {
+    const modal = document.querySelector('.modal-box') as HTMLElement;
+    const overlay = document.querySelector('.overlay') as HTMLElement;
+    if (!modal || !overlay) return;
+
+    if (
+      data.velocity > VELOCITY_THRESHOLD ||
+      (data.velocity >= 0 && data.clientY >= window.innerHeight * 0.5)
+    ) {
+      const transitionDuration = 0.15 / Math.max(data.velocity, 0.5);
+      modal.style.transition = `transform ${transitionDuration}s ease-out`;
+      modal.style.transform = 'translateY(100%)';
+      overlay.style.transition = `opacity ${transitionDuration}s ease-out`;
+      overlay.style.opacity = '0';
+      setTimeout(() => {
+        onClose();
+        modal.style.transform = 'translateY(0%)';
+      }, 300);
+      if (appService?.hasHaptics) {
+        impactFeedback('medium');
+      }
+    } else {
+      modal.style.transition = `transform 0.3s ease-out`;
+      modal.style.transform = `translateY(0%)`;
+      overlay.style.opacity = '0';
+      if (appService?.hasHaptics) {
+        impactFeedback('medium');
+      }
+    }
+  };
+
+  const { handleDragStart } = useDrag(handleDragMove, handleDragEnd);
+
   return (
     <dialog
       id={id ?? 'dialog'}
       open={isOpen}
-      className={clsx(
-        'modal sm:min-w-90 z-50 h-full w-full !bg-[rgba(0,0,0,0.2)] sm:w-full',
-        className,
-      )}
+      className={clsx('modal sm:min-w-90 z-50 h-full w-full !bg-transparent sm:w-full', className)}
     >
+      <div className={clsx('overlay fixed inset-0 z-10 bg-black/50 sm:bg-black/20', bgClassName)} />
       <div
         className={clsx(
-          'modal-box settings-content flex h-full max-h-full w-full max-w-full flex-col rounded-none p-0 sm:rounded-2xl',
-          'sm:h-[60%] sm:w-[65%] sm:max-w-[600px]',
-          appService?.hasSafeAreaInset && 'pt-[env(safe-area-inset-top)]',
+          'modal-box settings-content z-20 flex flex-col rounded-none rounded-tl-2xl rounded-tr-2xl p-0 sm:rounded-2xl',
+          'h-full max-h-full w-full max-w-full sm:w-[65%] sm:max-w-[600px]',
+          appService?.hasSafeAreaInset && 'pt-[env(safe-area-inset-top)] sm:pt-0',
           boxClassName,
         )}
       >
+        {window.innerWidth < 640 && (
+          <div
+            className='drag-handle flex h-10 w-full cursor-row-resize items-center justify-center'
+            onMouseDown={handleDragStart}
+            onTouchStart={handleDragStart}
+          >
+            <div className='bg-base-content/50 h-1 w-10 rounded-full'></div>
+          </div>
+        )}
         <div className='dialog-header bg-base-100 sticky top-1 z-10 flex items-center justify-between px-4'>
           {header ? (
             header

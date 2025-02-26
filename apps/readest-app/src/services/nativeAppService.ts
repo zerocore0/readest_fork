@@ -118,6 +118,7 @@ export class NativeAppService extends BaseAppService {
   fs = nativeFileSystem;
   appPlatform = 'tauri' as AppPlatform;
   isAppDataSandbox = ['android', 'ios'].includes(OS_TYPE);
+  isMobile = ['android', 'ios'].includes(OS_TYPE);
   isAndroidApp = OS_TYPE === 'android';
   isIOSApp = OS_TYPE === 'ios';
   hasTrafficLight = OS_TYPE === 'macos';
@@ -125,6 +126,7 @@ export class NativeAppService extends BaseAppService {
   hasContextMenu = !(OS_TYPE === 'ios' || OS_TYPE === 'android');
   hasRoundedWindow = !(OS_TYPE === 'ios' || OS_TYPE === 'android');
   hasSafeAreaInset = OS_TYPE === 'ios' || OS_TYPE === 'android';
+  hasHaptics = OS_TYPE === 'ios' || OS_TYPE === 'android';
 
   override resolvePath(fp: string, base: BaseDir): { baseDir: number; base: BaseDir; fp: string } {
     return resolvePath(fp, base);

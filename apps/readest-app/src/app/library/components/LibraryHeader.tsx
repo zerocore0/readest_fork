@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FaSearch } from 'react-icons/fa';
 import { PiPlus } from 'react-icons/pi';
@@ -16,6 +16,7 @@ import WindowButtons from '@/components/WindowButtons';
 import Dropdown from '@/components/Dropdown';
 import SettingsMenu from './SettingsMenu';
 import ImportMenu from './ImportMenu';
+import useShortcuts from '@/hooks/useShortcuts';
 
 interface LibraryHeaderProps {
   isSelectMode: boolean;
@@ -37,26 +38,18 @@ const LibraryHeader: React.FC<LibraryHeaderProps> = ({
   const iconSize16 = useResponsiveSize(16);
   const iconSize20 = useResponsiveSize(20);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.shiftKey) {
-        onToggleSelectMode();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [onToggleSelectMode]);
+  useShortcuts({
+    onToggleSelectMode,
+  });
 
-  const windowButtonVisible = appService?.appPlatform !== 'web' && !isTrafficLightVisible;
+  const windowButtonVisible = appService?.hasWindowBar && !isTrafficLightVisible;
   const isInGroupView = !!searchParams?.get('group');
 
   return (
     <div
       ref={headerRef}
       className={clsx(
-        'titlebar z-10 flex h-11 w-full items-center py-2 pr-4 sm:pr-6',
+        'titlebar h-13 z-10 flex w-full items-center py-2 pr-4 sm:pr-6',
         appService?.hasSafeAreaInset && 'mt-[env(safe-area-inset-top)]',
         isTrafficLightVisible ? 'pl-16' : 'pl-0 sm:pl-2',
       )}
@@ -75,7 +68,7 @@ const LibraryHeader: React.FC<LibraryHeaderProps> = ({
               </div>
             </button>
           )}
-          <div className='relative flex h-7 w-full items-center'>
+          <div className='relative flex h-9 w-full items-center sm:h-7'>
             <span className='absolute left-3 text-gray-500'>
               <FaSearch className='h-4 w-4' />
             </span>
@@ -84,14 +77,14 @@ const LibraryHeader: React.FC<LibraryHeaderProps> = ({
               placeholder={_('Search Books...')}
               spellCheck='false'
               className={clsx(
-                'input rounded-badge bg-base-300/50 h-7 w-full pl-10 pr-10',
+                'input rounded-badge bg-base-300/50 h-9 w-full pl-10 pr-10 sm:h-7',
                 'font-sans text-sm font-light',
                 'border-none focus:outline-none focus:ring-0',
               )}
             />
           </div>
           <div className='absolute right-4 flex items-center space-x-2 text-gray-500 sm:space-x-4'>
-            <span className='mx-2 h-6 w-[1px] bg-gray-400'></span>
+            <span className='bg-base-content/50 mx-2 h-4 w-[0.5px]'></span>
             <Dropdown
               className='exclude-title-bar-mousedown dropdown-bottom flex h-6 cursor-pointer justify-center'
               buttonClassName='p-0 h-6 min-h-6 w-6 flex items-center justify-center'
@@ -128,12 +121,14 @@ const LibraryHeader: React.FC<LibraryHeaderProps> = ({
           >
             <SettingsMenu />
           </Dropdown>
-          <WindowButtons
-            headerRef={headerRef}
-            showMinimize={windowButtonVisible}
-            showMaximize={windowButtonVisible}
-            showClose={windowButtonVisible}
-          />
+          {appService?.hasWindowBar && (
+            <WindowButtons
+              headerRef={headerRef}
+              showMinimize={windowButtonVisible}
+              showMaximize={windowButtonVisible}
+              showClose={windowButtonVisible}
+            />
+          )}
         </div>
       </div>
     </div>
