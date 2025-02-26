@@ -257,10 +257,15 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       res.setHeader(key, value);
     });
 
+    // 设置适当的响应头来处理分块传输
+    res.setHeader('Transfer-Encoding', 'chunked');
+    res.setHeader('Connection', 'keep-alive');
+
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    res.send(buffer);
+    // 使用 end 而不是 send 来确保响应正确结束
+    res.end(buffer);
   } catch (error) {
     console.error('Error processing request:', error);
     res.status(500).json({ error: 'Internal Server Error' });
